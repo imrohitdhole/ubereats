@@ -131,4 +131,4 @@ Compose maps the API to port **5001**. Start the React app separately with `npm 
 
 ## License
 
-ISC (backend `package.json`). Add or adjust a top-level license file if you need a different license for the whole project.
+ISC (backend `package.json`). 
