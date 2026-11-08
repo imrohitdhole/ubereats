@@ -47,7 +47,10 @@ spec:
         - name: KAFKA_BROKER
           value: "kafka-service:9092"
         - name: JWT_SECRET
-          value: "3e8b985b70290f1686ee27d68d5fa8078339654a40e2f880f27697da5db94785"
+          valueFrom:
+            secretKeyRef:
+              name: ubereats-secrets   # kubectl create secret generic ubereats-secrets --from-literal=JWT_SECRET=<value>
+              key: JWT_SECRET
         - name: PORT
           value: "5001"
 ---

@@ -10,17 +10,21 @@ Full-stack web application with a React client, Express API, MongoDB, and Kafka 
 | Backend      | Node.js, Express, Mongoose, KafkaJS             |
 | Data         | MongoDB                                         |
 | Messaging    | Apache Kafka (Confluent images via Docker)      |
-| Containers   | Docker Compose                                  |
+| Containers   | Docker, Docker Compose, Kubernetes              |
+| Load testing | Apache JMeter                                   |
 
 ## Repository layout
 
 ```
-UBE/
-├── frontend/          # React SPA (default dev server: http://localhost:3000)
-├── backend/           # REST API (default: http://localhost:5001)
+ubereats/
+├── frontend/              # React SPA (default dev server: http://localhost:3000)
+├── backend/               # REST API (default: http://localhost:5001)
 │   ├── docker-compose.yml
-│   ├── .env.example   # Copy to .env for local development
-│   └── kafka/         # Producer / consumer / topic init
+│   ├── Dockerfile
+│   ├── .env.example       # Copy to .env for local development
+│   ├── kafka/             # Producer / consumer / topic init
+│   ├── kubernetes/        # Deployment manifests (app, MongoDB, Kafka, Zookeeper)
+│   └── *.jmx              # JMeter load-test plans
 └── README.md
 ```
 
@@ -111,6 +115,30 @@ docker compose up --build
 ```
 
 Compose maps the API to port **5001**. Start the React app separately with `npm start` in `frontend/` unless you add a frontend service to Compose.
+
+## Kubernetes deployment
+
+`backend/kubernetes/deployment.yaml` deploys the API (2 replicas behind a LoadBalancer service), MongoDB with a persistent volume on an AWS EBS storage class, Zookeeper and Kafka. An init container creates the Kafka topics before the API starts.
+
+```bash
+# Build and push the API image (the manifest uses rohitdhole/ubereats-backend:latest)
+docker build -t <dockerhub-user>/ubereats-backend:latest backend
+docker push <dockerhub-user>/ubereats-backend:latest
+
+# Create the JWT secret the deployment reads, then apply the manifests
+kubectl create secret generic ubereats-secrets --from-literal=JWT_SECRET=<your-secret>
+kubectl apply -f backend/kubernetes/deployment.yaml
+```
+
+The manifest expects an image pull secret named `dockerhub-secret` and the AWS EBS CSI driver for the `ebs-sc` storage class.
+
+## Load testing
+
+`backend/ubereats-login.jmx` and `backend/user-signup.jmx` are Apache JMeter plans that send 100 concurrent users (10-second ramp-up, 10 loops each) to `POST /auth/login` and `POST /auth/user-signup` on `localhost:5001`.
+
+```bash
+jmeter -n -t backend/ubereats-login.jmx -l results.jtl
+```
 
 ## Ports reference
 
